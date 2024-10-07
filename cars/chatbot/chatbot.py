@@ -1,21 +1,28 @@
 # This file will contain the logic for the chatbot
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import torch
 
-# Initialize the DialoGPT model and tokenizer
-model_name = "microsoft/DialoGPT-medium"
+# Initialize the GODEL model and tokenizer
+model_name = "microsoft/GODEL-v1_1-base-seq2seq"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-def get_chatbot_response(user_message):
-    # Encode the user's message and add it to the chat history
-    input_ids = tokenizer.encode(user_message + tokenizer.eos_token, return_tensors="pt")
+def get_chatbot_response(user_message, knowledge="", history=""):
+    # Prepare the input for GODEL
+    prompt = f"Human: {user_message}\nAssistant: "
+    if knowledge:
+        prompt = f"Knowledge: {knowledge}\n" + prompt
+    if history:
+        prompt = f"Human: {history}\nHuman: {user_message}\nAssistant: "
+
+    # Encode the input
+    inputs = tokenizer([prompt], return_tensors="pt", truncation=True, max_length=512)
     
     # Generate a response
-    chat_history_ids = model.generate(
-        input_ids,
+    outputs = model.generate(
+        **inputs,
         max_length=1000,
-        pad_token_id=tokenizer.eos_token_id,
+        num_return_sequences=1,
         no_repeat_ngram_size=3,
         do_sample=True,
         top_k=100,
@@ -24,6 +31,6 @@ def get_chatbot_response(user_message):
     )
     
     # Decode the generated response
-    response = tokenizer.decode(chat_history_ids[:, input_ids.shape[-1]:][0], skip_special_tokens=True)
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     
-    return response
+    return response.strip()
