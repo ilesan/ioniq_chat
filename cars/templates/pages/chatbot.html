@@ -91,25 +91,43 @@
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
 
-        function sendMessage() {
+        async function sendMessage() {
             const userMessage = userInput.value;
             if (userMessage.trim() !== '') {
                 chatbox.innerHTML += `<div><strong>You:</strong> ${userMessage}</div>`;
                 userInput.value = '';
 
-                // Simulate a response from the chatbot
-                const botResponse = "This is a placeholder response.";
+                // Send the user message to the server and get the response
+                const response = await fetch('/get_response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: userMessage }),
+                });
+
+                const data = await response.json();
+                const botResponse = data.response;
+
                 chatbox.innerHTML += `<div><strong>Bot:</strong> ${botResponse}</div>`;
                 chatbox.scrollTop = chatbox.scrollHeight;
             }
+            // Focus on the input box after sending a message
+            userInput.focus();
         }
 
         sendButton.addEventListener('click', sendMessage);
 
         userInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission
                 sendMessage();
             }
+        });
+
+        // Focus on the input box when the page loads
+        window.addEventListener('load', () => {
+            userInput.focus();
         });
     </script>
 </body>
