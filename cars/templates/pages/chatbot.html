@@ -90,40 +90,66 @@
         const chatbox = document.getElementById('chatbox');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
+        const chatHistory = []; // Initialize chat history array
+
+        function renderChatHistory() {
+            chatbox.innerHTML = ''; // Clear the chatbox
+            chatHistory.forEach(({ sender, message }) => {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${sender}: ${message}`;
+                chatbox.appendChild(messageElement);
+            });
+            chatbox.scrollTop = chatbox.scrollHeight; // Scroll to the bottom
+        }
+
+        function addMessage(sender, message) {
+            chatHistory.push({ sender, message }); // Add message to chat history
+            renderChatHistory(); // Render the updated chat history
+        }
 
         async function sendMessage() {
             const userMessage = userInput.value;
             if (userMessage.trim() !== '') {
-                chatbox.innerHTML += `<div><strong>You:</strong> ${userMessage}</div>`;
+                const chatHistoryCopy = [...chatHistory]; // Create a copy of the chat history
+
+                addMessage('User', userMessage);
                 userInput.value = '';
 
-                // Send the user message to the server and get the response
-                const response = await fetch('/get_response', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: userMessage }),
-                });
+                try {
+                    const response = await fetch('/get_response', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            message: userMessage,
+                            history: chatHistoryCopy // Use the copied chat history
+                        })
+                    });
 
-                const data = await response.json();
-                const botResponse = data.response;
-
-                chatbox.innerHTML += `<div><strong>Bot:</strong> ${botResponse}</div>`;
-                chatbox.scrollTop = chatbox.scrollHeight;
+                    if (response.ok) {
+                        const data = await response.json();
+                        addMessage('System', data.response);
+                    } else {
+                        addMessage('System', 'Error: Unable to get response.');
+                    }
+                } catch (error) {
+                    addMessage('System', 'Error: Unable to get response.');
+                }
             }
-            // Focus on the input box after sending a message
-            userInput.focus();
         }
 
         sendButton.addEventListener('click', sendMessage);
 
-        userInput.addEventListener('keydown', (event) => {
+        // Add event listener for Enter key
+        userInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent form submission
                 sendMessage();
             }
         });
+
+        // Focus on the input box after sending a message
+        userInput.focus();
 
         // Focus on the input box when the page loads
         window.addEventListener('load', () => {

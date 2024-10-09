@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from chatbot.chatbot import get_chatbot_response
 
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -18,7 +19,14 @@ def chatbot():
 @app.route('/get_response', methods=['POST'])
 def get_response():
     user_message = request.json['message']
-    bot_response = get_chatbot_response(user_message)
+    chat_history = request.json.get('history', [])
+
+    # Get bot response
+    bot_response = get_chatbot_response(
+        user_message, 
+        history=chat_history,
+    )
+    
     return jsonify({'response': bot_response})
 
 if __name__ == '__main__':
