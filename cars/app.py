@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from chatbot.chatbot import get_chatbot_response
+from pathlib import Path
 
 
 app = Flask(__name__)
@@ -20,10 +21,12 @@ def chatbot():
 def get_response():
     user_message = request.json['message']
     chat_history = request.json.get('history', [])
-
+    print(chat_history)
+    knowledge = open(Path(__file__).parent / 'knowledge/knowledge.md', 'r').read()
     # Get bot response
     bot_response = get_chatbot_response(
         user_message, 
+        knowledge=knowledge,
         history=chat_history,
     )
     
